@@ -251,6 +251,7 @@ typedef struct _dwg_resbuf
   union 
   {
     char   *str;
+    DWGCHAR *wstr;
     double  pt[3];
     char    i8;
     short   i16;
@@ -1601,6 +1602,11 @@ typedef struct _dwg_object_VIEW
   BITCODE_BD back_clip;
   BITCODE_4BITS view_mode;
   BITCODE_RC render_mode;
+  BITCODE_B use_default_lights;       // R21
+  BITCODE_RC default_lightining_type; // R21
+  BITCODE_BD brightness;              // R21
+  BITCODE_BD contrast;                // R21
+  BITCODE_CMC ambient_color;          // R21  
   BITCODE_B pspace_flag;
   BITCODE_B associated_ucs;
   BITCODE_3BD origin;
