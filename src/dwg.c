@@ -84,6 +84,8 @@ dwg_read_file(char *filename, Dwg_Data * dwg_data)
     }
   fclose(fp);
 
+  memset(dwg_data, 0, sizeof(Dwg_Data));
+  
   /* Decode the dwg structure
    */
   dwg_data->bit_chain = &bit_chain;
@@ -194,7 +196,7 @@ dwg_bmp(Dwg_Data *stk, long int *size)
       else if (code == 3)
         {
           bit_read_RL(dat);
-          LOG_TRACE("\t\tWMF size: 0x%x\n", bit_read_RL (dat))
+          LOG_TRACE("\t\tWMF size: 0x%lx\n", bit_read_RL (dat))
         }
       else
         {
