@@ -165,6 +165,8 @@ bit_write_BE(dat, FIELD_VALUE(name.x), FIELD_VALUE(name.y), FIELD_VALUE(name.z))
 
 #define FIELD_VECTOR(name, type, size) FIELD_VECTOR_N(name, type, _obj->size)
 
+#define FIELD_VECTOR_TV(name, size) FIELD_VECTOR_N(name, T, _obj->size)
+
 // XXX need a review
 #define FIELD_HANDLE(name, handle_code) \
     bit_write_H(dat, &_obj->name->handleref)
@@ -178,6 +180,8 @@ bit_write_BE(dat, FIELD_VALUE(name.x), FIELD_VALUE(name.y), FIELD_VALUE(name.z))
 #define HANDLE_VECTOR(name, sizefield, code) HANDLE_VECTOR_N(name, FIELD_VALUE(sizefield), code)
 
 #define FIELD_XDATA(name, size)
+
+#define SEEK_TO_HANDLES /* Empty */
 
 #define COMMON_ENTITY_HANDLE_DATA  \
  dwg_encode_common_entity_handle_data(dat, obj);
@@ -715,7 +719,7 @@ dwg_encode_chains(Dwg_Data * dwg, Bit_Chain * dat)
   return 0;
 }
 
-#include<dwg.spec>
+#include"dwg.spec"
 
 void
 dwg_encode_add_object(Dwg_Object * obj, Bit_Chain * dat,

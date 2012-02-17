@@ -25,7 +25,11 @@
 
 static unsigned int loglevel;
 
-#define DWG_LOGLEVEL loglevel
+//#define DWG_LOGLEVEL loglevel
+
+void dwg_decode_header_variables(Bit_Chain* dat, Dwg_Data * dwg, Bit_Chain *sstream);
+void dwg_decode_2007_header_handles(Bit_Chain* dat, Dwg_Data * dwg);
+void dwg_decode_add_object(Dwg_Data * dwg, Bit_Chain * dat, long unsigned int address);
 
 typedef struct r2007_file_header
 {
@@ -97,7 +101,7 @@ typedef struct _r2007_section
   int64_t  unknown;      // 0x00
   int64_t  encoded;
   int64_t  num_pages;
-  wchar_t *name;
+  DWGCHAR *name;
   r2007_section_page **pages;
   struct _r2007_section *next;
 } r2007_section;
@@ -906,6 +910,241 @@ read_file_header(Bit_Chain* dat, r2007_file_header *file_header)
   free(pedata);
 }
 
+Bit_Chain *
+string_stream_init(Bit_Chain *sstream, Bit_Chain *dat, unsigned long int bitpos, int check_present_bit)
+{
+  int strsize, hisize;
+  
+  uint64_t mem_byte = dat->byte;
+  uint8_t  mem_bit  = dat->bit;
+  
+  if (check_present_bit)
+    {      
+      dat->byte = ((bitpos-8) >> 3);
+      dat->bit  = ((bitpos-8) & 7);
+
+      if (bit_read_RC(dat) == 1)
+        {
+          bitpos -= 17;
+
+          dat->byte = (bitpos >> 3);
+          dat->bit  = (bitpos & 7);
+        }
+      else
+      {
+        // no string stream present
+        dat->byte = mem_byte;
+        dat->bit  = mem_bit;
+        return dat;
+      }
+    }
+  else
+    {
+      bitpos += 0x8F;  // 8 * 16 + 15
+      dat->byte = (bitpos >> 3);
+      dat->bit  = (bitpos & 7);
+    }
+
+  strsize = bit_read_RS(dat);
+
+  if (strsize & 0x8000)
+    {
+      strsize &= 0x7FFF;   //~0x8000;
+      bitpos -= 16;
+      dat->byte = (bitpos >> 3);
+      dat->bit  = (bitpos & 7);
+      hisize = bit_read_RS(dat);
+      strsize |= (hisize << 15);          
+    }
+  
+  bitpos -= strsize;  
+
+  sstream->byte    = bitpos >> 3;
+  sstream->bit     = bitpos & 7;
+  sstream->chain   = dat->chain;
+  sstream->size    = dat->size;
+  sstream->version = dat->version;
+
+  dat->byte = mem_byte;
+  dat->bit  = mem_bit;
+
+  return sstream;
+}
+
+/* Class Section
+ */
+static void
+read_r2007_section_classes(Bit_Chain *dat, Dwg_Data *dwg, 
+                           r2007_section *sections_map, r2007_page *pages_map)
+{
+  Bit_Chain sec_dat;
+  
+  if (read_data_section(&sec_dat, dat, sections_map, pages_map, 0x3f54045f) != 0)
+    return;  
+
+  dwg->dwg_ot_layout = 0;
+  dwg->num_classes   = 0;
+
+  if (bit_search_sentinel(&sec_dat, dwg_sentinel(DWG_SENTINEL_CLASS_BEGIN)))
+    {
+      uint32_t size, num_bits;
+      uint32_t max_num;
+      uint32_t num_objects, dwg_version, maint_version, unknown1, unknown2;
+      char unknown;
+      Bit_Chain sstream;
+    
+      size     = bit_read_RL(&sec_dat);  // size of class data area
+      num_bits = bit_read_RL(&sec_dat);  // size in bits
+      max_num  = bit_read_BL(&sec_dat);  // Maxiumum class number
+      unknown  = bit_read_B(&sec_dat);
+    
+      string_stream_init(&sstream, &sec_dat, num_bits, 0);
+    
+      do
+        {
+          unsigned int idc;
+
+          idc = dwg->num_classes;
+          if (idc == 0)
+            dwg->dwg_class = (Dwg_Class *) malloc(sizeof(Dwg_Class));
+          else
+            dwg->dwg_class = (Dwg_Class *) realloc(dwg->dwg_class, (idc + 1)
+                * sizeof(Dwg_Class));
+
+          dwg->dwg_class[idc].number        = bit_read_BS(&sec_dat);
+          dwg->dwg_class[idc].version       = bit_read_BS(&sec_dat);
+          dwg->dwg_class[idc].wasazombie    = bit_read_B(&sec_dat);
+          dwg->dwg_class[idc].item_class_id = bit_read_BS(&sec_dat);  // 0x1F2 or 0x1F3
+          dwg->dwg_class[idc].appname       = (char*)bit_read_TU(&sstream);
+          dwg->dwg_class[idc].cppname       = (char*)bit_read_TU(&sstream);
+          dwg->dwg_class[idc].dxfname       = (char*)bit_read_TU(&sstream);
+        
+          num_objects   = bit_read_BL(&sec_dat);  // DXF 91
+          dwg_version   = bit_read_BL(&sec_dat);  // Dwg Version
+          maint_version = bit_read_BL(&sec_dat);  // Maintenance release version.
+          unknown1      = bit_read_BL(&sec_dat);  // Unknown (normally 0L)
+          unknown2      = bit_read_BL(&sec_dat);  // Unknown (normally 0L)
+
+          dwg->num_classes++;
+        
+          if (dwg->dwg_class[idc].number == max_num)
+            break;
+
+        } 
+      while (sec_dat.byte < (size - 1));
+    }
+
+  free(sec_dat.chain);
+}
+
+/* Header Section
+ */
+static void
+read_r2007_section_header(Bit_Chain *dat, Dwg_Data *dwg, 
+                        r2007_section *sections_map, r2007_page *pages_map)
+{
+  Bit_Chain sec_dat;
+  
+  if (read_data_section(&sec_dat, dat, sections_map, pages_map, 0x32b803d9) != 0)
+    return;  
+
+  if (bit_search_sentinel(&sec_dat, dwg_sentinel(DWG_SENTINEL_VARIABLE_BEGIN)))
+    {
+	    Bit_Chain sstream;
+	    unsigned long int length;
+	    unsigned long int bitsize;
+
+	    length = bit_read_RL(&sec_dat);
+      LOG_TRACE("Length: %ld\n", length);
+
+      bitsize = bit_read_RL(&sec_dat);
+      LOG_TRACE("Offset: %ld\n", bitsize); 
+      
+	    string_stream_init(&sstream, &sec_dat, bitsize, 0);
+
+	    dwg_decode_header_variables(&sec_dat, dwg, &sstream);
+	    dwg_decode_2007_header_handles(&sstream, dwg);
+
+	    bit_search_sentinel(&sec_dat, dwg_sentinel(DWG_SENTINEL_VARIABLE_END));
+    }
+   
+  free(sec_dat.chain);
+}
+
+static void
+read_r2007_section_handles(Bit_Chain* dat, Dwg_Data *dwg,
+                           r2007_section *sections_map, r2007_page *pages_map)
+{
+  unsigned int section_size = 0;
+  unsigned char sgdc[2];
+  long unsigned int duabyte;
+  long unsigned int maplasta;
+  Bit_Chain hdl_dat;
+  Bit_Chain obj_dat;
+  
+  
+  if (read_data_section(&obj_dat, dat, sections_map, pages_map, 0x674c05a9) != 0)
+    return;  
+  
+  if (read_data_section(&hdl_dat, dat, sections_map, pages_map, 0x3f6e0450) != 0)
+    {
+      free(obj_dat.chain);
+      return;
+    }
+
+  
+  maplasta = hdl_dat.byte + hdl_dat.size;
+  dwg->num_objects = 0;
+  
+  do
+    {
+      long unsigned int last_offset;
+      long unsigned int last_handle;
+      long unsigned int previous_address = 0;
+    
+      duabyte = hdl_dat.byte;
+      sgdc[0] = bit_read_RC(&hdl_dat);
+      sgdc[1] = bit_read_RC(&hdl_dat);
+      section_size = (sgdc[0] << 8) | sgdc[1];
+    
+      LOG_TRACE("section_size: %u\n", section_size);
+    
+      if (section_size > 2034)
+        LOG_INFO("Error: Object-map section size greater than 2034!\n");
+    
+      last_handle = 0;
+      last_offset = 0;
+      while (hdl_dat.byte - duabyte < section_size)
+        {
+          long int pvztkt;
+          long int pvzadr;
+      
+          previous_address = hdl_dat.byte;
+      
+          pvztkt = bit_read_MC(&hdl_dat);
+          last_handle += pvztkt;
+      
+          pvzadr = bit_read_MC(&hdl_dat);
+          last_offset += pvzadr;
+      
+          dwg_decode_add_object(dwg, &obj_dat, last_offset);
+        }
+    
+      if (hdl_dat.byte == previous_address)
+        break;
+      hdl_dat.byte += 2; // CRC
+    
+      if (hdl_dat.byte >= maplasta)
+        break;
+    }
+  while (section_size > 2);
+  
+  LOG_TRACE("\nNum objects: %lu\n", dwg->num_objects);
+
+  free(hdl_dat.chain);
+  free(obj_dat.chain);
+}
+
 int
 read_r2007_meta_data(Bit_Chain *dat, Dwg_Data *dwg)
 {
@@ -935,11 +1174,14 @@ read_r2007_meta_data(Bit_Chain *dat, Dwg_Data *dwg)
     }
   
   // Section Classes
-  //read_r2007_section_classes(dat, dwg, sections_map, pages_map);
+  read_r2007_section_classes(dat, dwg, sections_map, pages_map);
   
   // Section Header
-  //read_r2007_section_header(dat, dwg, sections_map, pages_map);
+  read_r2007_section_header(dat, dwg, sections_map, pages_map);
   
+  // Section Handles
+  read_r2007_section_handles(dat, dwg, sections_map, pages_map);
+
   pages_destroy(pages_map);
   sections_destroy(sections_map);   
 

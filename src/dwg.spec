@@ -55,7 +55,7 @@ DWG_ENTITY (TEXT);
       FIELD(rotation_ang, BD);
       FIELD(height, BD);
       FIELD(width_factor, BD);
-      FIELD(text_value, TV);
+      FIELD_TV(text_value);
       FIELD(generation, BS);
       FIELD(horiz_alignment, BS);
       FIELD(vert_alignment, BS);
@@ -102,7 +102,7 @@ DWG_ENTITY (TEXT);
           FIELD(width_factor, RD);
         }
 
-      FIELD(text_value, TV);
+      FIELD_TV(text_value);
 
       if (!(FIELD_VALUE(dataflags) & 0x20))
         {
@@ -139,7 +139,7 @@ DWG_ENTITY(ATTRIB);
       FIELD(rotation_ang, BD);
       FIELD(height, BD);
       FIELD(width_factor, BD);
-      FIELD(text_value, TV);
+      FIELD_TV(text_value);
       FIELD(generation, BS);
       FIELD(horiz_alignment, BS);
       FIELD(vert_alignment, BS);
@@ -177,7 +177,7 @@ DWG_ENTITY(ATTRIB);
         {
           FIELD(width_factor, RD);
         }
-      FIELD(text_value, TV);
+      FIELD_TV(text_value);
       if (!(FIELD_VALUE(dataflags) & 0x20))
         {
           FIELD(generation, BS);
@@ -192,7 +192,7 @@ DWG_ENTITY(ATTRIB);
         }
     }
 
-  FIELD(tag, TV);
+  FIELD_TV(tag);
   FIELD(field_length, BS);
   FIELD(flags, RC);
 
@@ -221,7 +221,7 @@ DWG_ENTITY(ATTDEF);
       FIELD(rotation_ang, BD);
       FIELD(height, BD);
       FIELD(width_factor, BD);
-      FIELD(default_value, TV);
+      FIELD_TV(default_value);
       FIELD(generation, BS);
       FIELD(horiz_alignment, BS);
       FIELD(vert_alignment, BS);
@@ -259,7 +259,7 @@ DWG_ENTITY(ATTDEF);
         {
           FIELD(width_factor, RD);
         }
-      FIELD(default_value, TV);
+      FIELD_TV(default_value);
       if (!(FIELD_VALUE(dataflags) & 0x20))
         {
           FIELD(generation, BS);
@@ -274,7 +274,7 @@ DWG_ENTITY(ATTDEF);
         }
     }
 
-  FIELD(tag, TV);
+  FIELD_TV(tag);
   FIELD(field_length, BS);
   FIELD(flags, RC);
 
@@ -283,7 +283,7 @@ DWG_ENTITY(ATTDEF);
       FIELD(lock_position_flag, B);
     }
 
-  FIELD(prompt, TV);
+  FIELD_TV(prompt);
 
   COMMON_ENTITY_HANDLE_DATA;
 
@@ -294,7 +294,7 @@ DWG_ENTITY_END
 /*(4)*/
 DWG_ENTITY(BLOCK);
 
-  FIELD(name, TV);
+  FIELD_TV(name);
 
   COMMON_ENTITY_HANDLE_DATA;
 
@@ -1250,7 +1250,7 @@ DWG_ENTITY_END
 
 #define DECODE_3DSOLID decode_3dsolid(dat, obj, _obj);
 
-inline void decode_3dsolid(Bit_Chain* dat, Dwg_Object* obj, Dwg_Entity_3DSOLID* _obj){
+void decode_3dsolid(Bit_Chain* dat, Dwg_Object* obj, Dwg_Entity_3DSOLID* _obj){
 	Dwg_Data* dwg = obj->parent;
   int vcount, rcount, rcount2;
   int i=0;
@@ -1368,7 +1368,7 @@ inline void decode_3dsolid(Bit_Chain* dat, Dwg_Object* obj, Dwg_Entity_3DSOLID* 
 
 #define ENCODE_3DSOLID encode_3dsolid(dat, obj, _obj);
 
-inline void encode_3dsolid(Bit_Chain* dat, Dwg_Object* obj, Dwg_Entity_3DSOLID* _obj){
+void encode_3dsolid(Bit_Chain* dat, Dwg_Object* obj, Dwg_Entity_3DSOLID* _obj){
   //TODO Implement-me
 }
 #else
@@ -1457,7 +1457,9 @@ DWG_OBJECT(DICTIONARY);
       return;
     }
 
-  FIELD_VECTOR(text, TV, numitems);
+  FIELD_VECTOR_TV(text, numitems);
+
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(parenthandle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -1480,8 +1482,9 @@ DWG_OBJECT(DICTIONARYWDLFT);
       FIELD(hard_owner, RC);
     }
 
-  FIELD_VECTOR(text, TV, numitems);
-  
+  FIELD_VECTOR(text, T, numitems);
+
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(parenthandle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -1513,7 +1516,7 @@ DWG_ENTITY(MTEXT);
   FIELD(drawing_dir, BS);
   FIELD(extends_ht, BD); //not documented
   FIELD(extends_wid, BD);
-  FIELD(text, TV);
+  FIELD_TV(text);
 
   SINCE(R_2000)
     {
@@ -1606,7 +1609,7 @@ DWG_ENTITY(TOLERANCE);
   FIELD_3DPOINT(ins_pt);
   FIELD_3DPOINT(x_direction);
   FIELD_3DPOINT(extrusion);
-  FIELD(text_string, TV);
+  FIELD_TV(text_string);
 
   COMMON_ENTITY_HANDLE_DATA;
   FIELD_HANDLE(dimstyle, 5);
@@ -1655,6 +1658,8 @@ DWG_ENTITY_END
 DWG_OBJECT(BLOCK_CONTROL);
 
   FIELD(num_entries, BS);
+
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(null_handle, 4);
   XDICOBJHANDLE(3);
   HANDLE_VECTOR(block_headers, num_entries, 2);
@@ -1666,9 +1671,14 @@ DWG_OBJECT_END
 /*(49)*/
 DWG_OBJECT(BLOCK_HEADER);
 
-  FIELD(entry_name, TV);
+  FIELD_TV(entry_name);
   FIELD(_64_flag, B);
-  FIELD(xrefindex_plus1, BS);
+
+  PRE(R_2007)
+    {
+      FIELD(xrefindex_plus1, BS);      
+	  }
+  
   FIELD(xdep, B);
   FIELD(anonymous, B);
   FIELD(hasattrs, B);
@@ -1682,11 +1692,15 @@ DWG_OBJECT(BLOCK_HEADER);
 
   SINCE(R_2004)
     {
-      FIELD(owned_object_count, BL);
+      if (!FIELD_VALUE(blkisxref))
+        {
+          FIELD(owned_object_count, BL);
+        }
     }
 
   FIELD_3DPOINT(base_pt);
-  FIELD(xref_pname, TV);
+
+  FIELD_TV(xref_pname);
 
   SINCE(R_2000)
     {
@@ -1698,7 +1712,7 @@ DWG_OBJECT(BLOCK_HEADER);
           FIELD_VALUE(insert_count)++;
         }
 
-      FIELD(block_description, TV);
+      FIELD_TV(block_description);
 
       FIELD(size_of_preview_data, BL);
       FIELD_VECTOR(binary_preview_data, RC, size_of_preview_data);
@@ -1711,6 +1725,7 @@ DWG_OBJECT(BLOCK_HEADER);
       FIELD(block_scaling, RC);
     }
 
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(block_control_handle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -1745,6 +1760,8 @@ DWG_OBJECT_END
 DWG_OBJECT(LAYER_CONTROL);
 
   FIELD(num_entries, BS);
+
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(null_handle, 4);
   XDICOBJHANDLE(3);
   HANDLE_VECTOR(layers, num_entries, 2);
@@ -1754,9 +1771,14 @@ DWG_OBJECT_END
 /*(51)*/
 DWG_OBJECT(LAYER);
 
-  FIELD(entry_name, TV);
+  FIELD_TV(entry_name);
   FIELD(_64_flag, B);
-  FIELD(xrefindex_plus1, BS);
+  
+  PRE(R_2007)
+    {
+      FIELD(xrefindex_plus1, BS);
+    }
+    
   FIELD(xrefdep, B);
   VERSIONS(R_13, R_14)
     {
@@ -1773,6 +1795,7 @@ DWG_OBJECT(LAYER);
 
   FIELD_CMC(color);
 
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(layer_control, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -1796,6 +1819,8 @@ DWG_OBJECT_END
 DWG_OBJECT(SHAPEFILE_CONTROL);
 
   FIELD(num_entries, BS);
+
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(null_handle, 4);
   XDICOBJHANDLE(3);
   HANDLE_VECTOR(shapefiles, num_entries, 2);
@@ -1805,9 +1830,14 @@ DWG_OBJECT_END
 /*(53)*/
 DWG_OBJECT(SHAPEFILE);
 
-  FIELD(entry_name, TV);
+  FIELD_TV(entry_name);
   FIELD(_64_flag, B);
-  FIELD(xrefindex_plus1, BS);
+
+  PRE(R_2007)
+    {
+      FIELD(xrefindex_plus1, BS);
+	  }
+
   FIELD(xrefdep, B);
   FIELD(vertical, B);
   FIELD(shape_file, B);
@@ -1816,8 +1846,10 @@ DWG_OBJECT(SHAPEFILE);
   FIELD(oblique_ang, BD);
   FIELD(generation, RC);
   FIELD(last_height, BD);
-  FIELD(font_name, TV);
-  FIELD(bigfont_name, TV);
+  FIELD_TV(font_name);
+  FIELD_TV(bigfont_name);
+
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(shapefile_control, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -1832,6 +1864,8 @@ DWG_OBJECT_END
 DWG_OBJECT(LTYPE_CONTROL);
 
   FIELD(num_entries, BS);
+
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(null_handle, 4);
   XDICOBJHANDLE(3);
   HANDLE_VECTOR(linetypes, num_entries, 2);
@@ -1842,13 +1876,19 @@ DWG_OBJECT_END
 
 /*(57)*/
 DWG_OBJECT(LTYPE);
+{
   char R2007plus_text_area_is_present = 0;
 
-  FIELD(entry_name, TV);
+  FIELD_TV(entry_name);
   FIELD(_64_flag, B);
-  FIELD(xrefindex_plus1, BS);
+  
+  PRE(R_2007)
+    {
+      FIELD(xrefindex_plus1, BS);
+    }
+    
   FIELD(xrefdep, B);
-  FIELD(description, TV);
+  FIELD_TV(description);
   FIELD(pattern_len, BD);
   FIELD(alignment, RC);
   FIELD(num_dashes, RC);
@@ -1878,12 +1918,13 @@ DWG_OBJECT(LTYPE);
         }
     }
 
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(linetype_control, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
   FIELD_HANDLE(null_handle, 5);
   HANDLE_VECTOR(shapefiles, num_dashes, 5);
-
+}
 DWG_OBJECT_END
 
 //(58): Unknown
@@ -1893,6 +1934,8 @@ DWG_OBJECT_END
 DWG_OBJECT(VIEW_CONTROL);
 
   FIELD(num_entries, BS);
+
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(null_handle, 4);
   XDICOBJHANDLE(3);
   HANDLE_VECTOR(views, num_entries, 2);
@@ -1902,9 +1945,14 @@ DWG_OBJECT_END
 /*(61)*/
 DWG_OBJECT(VIEW);
 
-  FIELD(entry_name, TV);
+  FIELD_TV(entry_name);
   FIELD(_64_flag, B);
-  FIELD(xrefindex_plus1, BS);
+  
+  PRE(R_2007)
+    {
+      FIELD(xrefindex_plus1, BS);
+    }
+    
   FIELD(xrefdep, B);
   FIELD(height, BD);
   FIELD(width, BD);
@@ -1948,6 +1996,7 @@ DWG_OBJECT(VIEW);
       FIELD(camera_plottable, B);
     }
 
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(view_control_handle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -1973,6 +2022,8 @@ DWG_OBJECT_END
 DWG_OBJECT(UCS_CONTROL);
 
   FIELD(num_entries, BS);
+
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(null_handle, 4);
   XDICOBJHANDLE(3);
   HANDLE_VECTOR(ucs, num_entries, 2);
@@ -1982,9 +2033,14 @@ DWG_OBJECT_END
 /*(63)*/
 DWG_OBJECT(UCS);
 
-  FIELD(entry_name, TV);
+  FIELD_TV(entry_name);
   FIELD(_64_flag, B);
-  FIELD(xrefindex_plus1, BS);
+
+  PRE(R_2007)
+    {
+      FIELD(xrefindex_plus1, BS);
+    }
+    
   FIELD(xrefdep, B);
   FIELD_3BD(origin);
   FIELD_3BD(x_direction);
@@ -1997,6 +2053,7 @@ DWG_OBJECT(UCS);
       FIELD(orthographic_type, BS);
     }
 
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(ucs_control_handle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -2013,6 +2070,8 @@ DWG_OBJECT_END
 DWG_OBJECT(VPORT_CONTROL);
 
   FIELD_BS (num_entries);
+
+  SEEK_TO_HANDLES;
   FIELD_HANDLE (null_handle, 4);
   XDICOBJHANDLE(3);
   HANDLE_VECTOR(vports, num_entries, 2); 
@@ -2024,7 +2083,12 @@ DWG_OBJECT(VPORT);
 
   FIELD_TV (entry_name);
   FIELD_B (_64_flag);
-  FIELD_BS (xrefindex_plus1);
+
+  PRE(R_2007)
+    {
+      FIELD_BS (xrefindex_plus1);
+	  }
+
   FIELD_B (xrefdep);
   FIELD_BD (view_height);
   FIELD_BD (aspect_ratio);
@@ -2084,6 +2148,7 @@ DWG_OBJECT(VPORT);
       FIELD_BS (grid_major);
     }
 
+  SEEK_TO_HANDLES;
   FIELD_HANDLE (vport_control, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -2108,6 +2173,8 @@ DWG_OBJECT_END
 DWG_OBJECT(APPID_CONTROL);
 
   FIELD_BS(num_entries);
+
+  SEEK_TO_HANDLES;
   FIELD_HANDLE (null_handle, 4);
   XDICOBJHANDLE(3);
   HANDLE_VECTOR(apps, num_entries, 2);
@@ -2119,10 +2186,16 @@ DWG_OBJECT(APPID);
 
   FIELD_TV (entry_name);
   FIELD_B (_64_flag);
-  FIELD_BS (xrefindex_plus1);
+
+  PRE(R_2007)
+    {
+      FIELD(xrefindex_plus1, BS);
+    }
+    
   FIELD_B (xrefdep);
   FIELD_RC (unknown);
 
+  SEEK_TO_HANDLES;
   FIELD_HANDLE (app_control, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -2147,6 +2220,7 @@ DWG_OBJECT(DIMSTYLE_CONTROL);
       bit_read_RC(dat);  // I think it's just one byte
     }
 
+  SEEK_TO_HANDLES;
   FIELD_HANDLE (null_handle, 4);
   XDICOBJHANDLE(3);
   HANDLE_VECTOR (dimstyles, num_entries, 2);
@@ -2158,7 +2232,12 @@ DWG_OBJECT(DIMSTYLE);
 
   FIELD_TV (entry_name);
   FIELD_B (_64_flag);
-  FIELD_BS (xrefindex_plus1);
+  
+  PRE(R_2007)
+    {
+      FIELD_BS (xrefindex_plus1);
+    }
+    
   FIELD_B (xrefdep);
 
   VERSIONS(R_13, R_14)
@@ -2314,6 +2393,7 @@ DWG_OBJECT(DIMSTYLE);
 
   FIELD_B (unknown);
 
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(dimstyle_control, 4);  
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -2341,6 +2421,8 @@ DWG_OBJECT_END
 DWG_OBJECT(VP_ENT_HDR_CONTROL);
 
   FIELD_BS (num_entries);
+
+  SEEK_TO_HANDLES;
   FIELD_HANDLE (null_handle, 4);
   XDICOBJHANDLE(3);
   HANDLE_VECTOR(viewport_entity_headers, num_entries, 2);
@@ -2350,11 +2432,18 @@ DWG_OBJECT_END
 /*(71)*/
 DWG_OBJECT(VP_ENT_HDR);
 
-  FIELD(entry_name, TV);
+  FIELD_TV(entry_name);
   FIELD(_64_flag, B);
-  FIELD(xrefindex_plus1, BS);
+
+  PRE(R_2007)
+    {
+      FIELD(xrefindex_plus1, BS);
+    }
+    
   FIELD(xrefdep, B);
   FIELD(one_flag, B);
+  
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(vp_ent_ctrl, ANYCODE);
   XDICOBJHANDLE(3);
   FIELD_HANDLE(null, 5);
@@ -2368,6 +2457,8 @@ DWG_OBJECT(GROUP);
   FIELD_BS (unnamed);
   FIELD_BS (selectable);
   FIELD_BL (num_handles);
+  
+  SEEK_TO_HANDLES;
   FIELD_HANDLE (parenthandle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -2378,8 +2469,8 @@ DWG_OBJECT_END;
 /*(73)*/
 DWG_OBJECT(MLINESTYLE);
 
-  FIELD(name, TV);
-  FIELD(desc, TV);
+  FIELD_TV(name);
+  FIELD_TV(desc);
   FIELD(flags, BS);
   FIELD_CMC(fillcolor);
   FIELD(startang, BD);
@@ -2393,6 +2484,8 @@ DWG_OBJECT(MLINESTYLE);
     FIELD_CMC(lines[rcount].color);
     FIELD(lines[rcount].ltindex, BS);
   }
+
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(parenthandle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -2406,6 +2499,7 @@ DWG_OBJECT(DICTIONARYVAR);
   FIELD_RC(intval);
   FIELD_TV(str);
 
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(parenthandle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -2515,6 +2609,8 @@ DWG_OBJECT(IDBUFFER);
 
   FIELD_RC (unknown);
   FIELD_BL (num_ids);
+  
+  SEEK_TO_HANDLES;
   FIELD_HANDLE (parenthandle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -2567,6 +2663,8 @@ DWG_OBJECT(IMAGEDEF);
   FIELD_B (is_loaded);
   FIELD_RC (resunits);
   FIELD_2RD (pixel_size);
+  
+  SEEK_TO_HANDLES;
   FIELD_HANDLE (parent_handle, 3);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -2577,6 +2675,8 @@ DWG_OBJECT_END
 DWG_OBJECT(IMAGEDEFREACTOR);
 
   FIELD_BL (class_version);
+  
+  SEEK_TO_HANDLES;
   FIELD_HANDLE (parent_handle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -2594,6 +2694,8 @@ DWG_OBJECT(LAYER_INDEX);
       FIELD_BL (entries[rcount].index_long);
       FIELD_TV (entries[rcount].index_str);
     }
+    
+  SEEK_TO_HANDLES;
   FIELD_HANDLE (parent_handle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -2604,8 +2706,8 @@ DWG_OBJECT_END
 //pg.145
 DWG_OBJECT(LAYOUT);
 
-  FIELD(page_setup_name, TV);
-  FIELD(printer_or_config, TV);
+  FIELD_TV(page_setup_name);
+  FIELD_TV(printer_or_config);
   FIELD(plot_layout_flags, BS);
   FIELD(left_margin, BD);
   FIELD(bottom_margin, BD);
@@ -2613,7 +2715,7 @@ DWG_OBJECT(LAYOUT);
   FIELD(top_margin, BD);
   FIELD(paper_width, BD);
   FIELD(paper_height, BD);
-  FIELD(paper_size, TV);
+  FIELD_TV(paper_size);
   FIELD_2BD(plot_origin);
   FIELD(paper_units, BS);
   FIELD(plot_rotation, BS);
@@ -2623,12 +2725,12 @@ DWG_OBJECT(LAYOUT);
 
   VERSIONS(R_13,R_2000)
     {
-      FIELD(plot_view_name, TV);
+      FIELD_TV(plot_view_name);
     }
 
   FIELD(real_world_units, BD);
   FIELD(drawing_units, BD);
-  FIELD(current_style_sheet, TV);
+  FIELD_TV(current_style_sheet);
   FIELD(scale_type, BS);
   FIELD(scale_factor, BD);
   FIELD_2BD(paper_image_origin);
@@ -2640,7 +2742,7 @@ DWG_OBJECT(LAYOUT);
       FIELD(shade_plot_custom_dpi, BS);
     }
 
-  FIELD(layout_name, TV);
+  FIELD_TV(layout_name);
   FIELD(tab_order, BS);
   FIELD(flags, BS);
   FIELD_3DPOINT(ucs_origin);
@@ -2659,6 +2761,7 @@ DWG_OBJECT(LAYOUT);
       FIELD_BL(viewport_count);
     }
 
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(parenthandle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -2779,27 +2882,35 @@ DWG_OBJECT_END
 
 //pg.150
 DWG_OBJECT(RASTERVARIABLES);
-
-  FIELD_BL (class_version);
-  FIELD_BS (display_frame);
-  FIELD_BS (display_quality);
-  FIELD_BS (units);
+{
+  BITCODE_BL (class_version);
+  BITCODE_BS (display_frame);
+  BITCODE_BS (display_quality);
+  BITCODE_BS (units);
+  
+  SEEK_TO_HANDLES;
   FIELD_HANDLE (parenthandle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
-
+}
 DWG_OBJECT_END
 
 //pg.151
 DWG_OBJECT(SORTENTSTABLE);
 
   FIELD_BL (num_entries);
+  
+  SEEK_TO_HANDLES;
   HANDLE_VECTOR (sort_handles, num_entries, 0);
   FIELD_HANDLE (parenthandle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
   FIELD_HANDLE (owner_handle, 4);
-  HANDLE_VECTOR (object_handles, num_entries, 4);
+  
+  PRE(R_2007)
+    {
+      HANDLE_VECTOR (object_handles, num_entries, 4);
+    }
 
 DWG_OBJECT_END
 
@@ -2825,6 +2936,8 @@ DWG_OBJECT(SPATIAL_FILTER);
 
   FIELD_VECTOR_N (inverse_block_transform, BD, 12);
   FIELD_VECTOR_N (clip_bound_transform, BD, 12);
+  
+  SEEK_TO_HANDLES;
   FIELD_HANDLE (parenthandle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -2838,6 +2951,7 @@ DWG_OBJECT(SPATIAL_INDEX);
   FIELD(timestamp2, BL);
   //TODO: parse this: "unknown X rest of bits to handles"
 /*
+  SEEK_TO_HANDLES;
   FIELD_HANDLE (parenthandle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
@@ -3501,6 +3615,7 @@ DWG_OBJECT(XRECORD);
 		  FIELD_BS(cloning_flags);
 		}
 	  
+	  SEEK_TO_HANDLES;
 	  FIELD_HANDLE(parent, 3);
 	  REACTORS(4);
 	  XDICOBJHANDLE(3);
@@ -3515,11 +3630,14 @@ DWG_OBJECT(PLACEHOLDER);
 
   // no own data members
   
+  SEEK_TO_HANDLES;
   FIELD_HANDLE(parenthandle, 4);
   REACTORS(4);
   XDICOBJHANDLE(3);
     
 DWG_OBJECT_END
+
+
 
 ////////////////////
 // These objects are not described in the spec:
