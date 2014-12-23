@@ -25,7 +25,6 @@ libredwg_la_SOURCES = \
 	bits.c \
 	decode.c \
         decode_r2007.c \
-	encode.c \
         print.c \
 	dwg_api.c
 libredwg_la_LDFLAGS = \
@@ -42,7 +41,6 @@ EXTRA_DIST = \
 	common.h \
 	bits.h \
 	decode.h \
-	encode.h \
 	logging.h \
         print.h
 

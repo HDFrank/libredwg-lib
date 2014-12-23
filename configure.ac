@@ -74,34 +74,15 @@ AC_ARG_ENABLE([trace],[AS_HELP_STRING([--enable-trace],[
   AC_DEFINE([USE_TRACING],1,[Define to 1 to enable runtime tracing support.])
 ])
 
-dnl Feature: --enable-write
-AC_ARG_ENABLE([write],[AS_HELP_STRING([--enable-write],[
-    Enable write support (default: no).])],[
-  AC_DEFINE([USE_WRITE],1,[Define to 1 to enable write support.])
-])
-
 dnl Test support.
 AM_CONDITIONAL([HAVE_LIBPS],[test yes = "$libredwg_have_libps" &&
                              test yes = "$ac_cv_header_libps_pslib_h"])
-
-dnl for SWIG - should be optional
-AM_PATH_PYTHON([2.3])
-AX_PKG_SWIG([1.3.17], [], [ AC_MSG_ERROR([SWIG is required to build..]) ])
-dnl AX_SWIG_ENABLE_CXX
-dnl SWIG_MULTI_MODULE_SUPPORT
-SWIG_PYTHON
-
-
-
-dnl Write it out!
 
 AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
 	doc/Makefile
 	examples/Makefile
-	bindings/Makefile
-	bindings/python/Makefile
     testsuite/Makefile
     testsuite/testcases/Makefile
     testsuite/xmlsuite/Makefile

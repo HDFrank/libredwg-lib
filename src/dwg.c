@@ -99,60 +99,6 @@ dwg_read_file(char *filename, Dwg_Data * dwg_data)
   return 0;
 }
 
-
-/* if write support is enabled */
-#ifdef USE_WRITE 
-
-int
-dwg_write_file(char *filename, Dwg_Data * dwg_data)
-{
-  FILE *dt;
-  struct stat atrib;
-  Bit_Chain bit_chain;
-  bit_chain.version = (Dwg_Version_Type)dwg_data->header.version;
-
-  // Encode the DWG struct
-   bit_chain.size = 0;
-   if (dwg_encode_chains (dwg_data, &bit_chain))
-   {
-   LOG_ERROR("Failed to encode datastructure.\n")
-   if (bit_chain.size > 0)
-   free (bit_chain.chain);
-   return -1;
-   }
- 
-
-  // try opening the output file in write mode
-   if (!stat (filename, &atrib))
-   {
-   LOG_ERROR("The file already exists. We won't overwrite it.")
-   return -1;
-   }
-   dt = fopen (filename, "w");
-   if (!dt)
-   {
-   LOG_ERROR("Failed to create the file: %s\n", filename)
-   return -1;
-   }
-   
-
-  // Write the data into the file
-   if (fwrite (bit_chain.chain, sizeof (char), bit_chain.size, dt) != bit_chain.size)
-   {
-   LOG_ERROR("Failed to write data into the file: %s\n", filename)
-   fclose (dt);
-   free (bit_chain.chain);
-   return -1;
-   }
-   fclose (dt);
-
-   if (bit_chain.size > 0)
-   free (bit_chain.chain);
-
-  return 0;
-}
-#endif /* USE_WRITE */ 
-
 unsigned char *
 dwg_bmp(Dwg_Data *stk, long int *size)
 {

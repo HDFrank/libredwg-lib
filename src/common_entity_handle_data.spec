@@ -1,13 +1,8 @@
-#ifdef IS_DECODER
   if (FIELD_VALUE(entity_mode)==0)
     {
       FIELD_HANDLE(subentity, 3);
     }
-#endif //IS_DECODER
 
-#ifdef IS_ENCODER
-  FIELD_HANDLE(subentity, 3);
-#endif  //IS_ENCODER
   ENT_REACTORS(4)
   ENT_XDICOBJHANDLE(3)
 
